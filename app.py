@@ -1362,8 +1362,7 @@ def _fetch_jobicy(keywords: str) -> tuple[list, list[str]]:
     print("[DEBUG][JOBICY] function called")
     print(f"[DEBUG][JOBICY] keyword: {keywords}")
     try:
-        kw_enc = requests.utils.quote(keywords)
-        url = f"https://jobicy.com/api/v2/remote-jobs?count=100&tag={kw_enc}"
+        url = "https://jobicy.com/api/v2/remote-jobs?count=100"
         print(f"[DEBUG][JOBICY] trying: {url}")
         raw = []
         try:
@@ -1379,7 +1378,6 @@ def _fetch_jobicy(keywords: str) -> tuple[list, list[str]]:
             print(f"[JOBICY] exception – {e}")
 
         print(f"[DEBUG][JOBICY] raw: {len(raw)}")
-        kw_lower = keywords.lower()
         geo_filtered = []
         for item in raw:
             geo = (item.get("jobGeo", "") or "").lower().strip()
@@ -1411,14 +1409,9 @@ def _fetch_jobicy(keywords: str) -> tuple[list, list[str]]:
                 "is_hybrid":   _detect_hybrid_text(title, location, full_desc),
                 "description": full_desc[:500],
             })
-        if kw_lower:
-            results = [j for j in candidates if kw_lower in j["title"].lower()]
-        else:
-            results = candidates
+        results = candidates
         print(f"[DEBUG][JOBICY] after keyword filter: {len(results)}")
         print(f"[JOBICY] {len(results)} results after filter")
-        if not raw:
-            return [], ["Jobicy – could not reach the API or received no results."]
         return results, []
     except Exception as e:
         print(f"[DEBUG][JOBICY] EXCEPTION: {e}")
@@ -1716,7 +1709,8 @@ def api_search():
         before = len(deduped)
         deduped = [
             j for j in deduped
-            if country_set.intersection(j.get('detected_countries') or [])
+            if 'remote' in (j.get('detected_countries') or [])
+            or country_set.intersection(j.get('detected_countries') or [])
         ]
         print(f"[EuroJobSearch] country filter: {before} → {len(deduped)} (kept {countries})")
 
