@@ -1190,6 +1190,7 @@ const state = {
   queriedSources: [],
   activeWorkModels: new Set(['remote', 'hybrid', 'onsite']),
   activeCountries: new Set(),
+  activeWorkModelFilter: new Set(),
   currentPage: 1,
   searchMeta: { sourcesCount: 0, duration: 0 },
 };
@@ -1717,6 +1718,7 @@ async function runSearch() {
     state.allResults = data.results || [];
     state.activeSourceFilter = 'ALL';
     state.activeCountries = new Set();
+    state.activeWorkModelFilter = new Set();
 
     showResults(data);
   } catch (e) {
@@ -1823,6 +1825,45 @@ function detectJobCountry(job) {
   return { key: `other:${truncated}`, label: truncated, flag: '📍' };
 }
 
+function buildWorkModelFilters() {
+  // Base: source + country filtered (excludes work-model filter)
+  const base = state.allResults.filter(j => _srcPredicate(j) && _countryPredicate(j));
+  const row = document.getElementById('workmodel-filters');
+  row.innerHTML = '';
+
+  const wmLabels = { remote: '🌐 Remote', hybrid: '🏢 Hybrid', onsite: '🏛 On-site' };
+  const counts = { remote: 0, hybrid: 0, onsite: 0 };
+  base.forEach(j => { counts[getWorkModel(j)]++; });
+
+  ['remote', 'hybrid', 'onsite'].forEach(model => {
+    if (!state.activeWorkModels.has(model)) return;
+    const count = counts[model];
+    const btn = document.createElement('button');
+    btn.dataset.workmodel = model;
+    btn.textContent = `${wmLabels[model]} (${count})`;
+    if (count === 0) {
+      btn.className = 'source-filter-btn zero';
+    } else {
+      btn.className = 'source-filter-btn';
+      if (state.activeWorkModelFilter.has(model)) {
+        btn.style.cssText = 'background:#5b6ef5;color:#ffffff;border:1px solid #5b6ef5;';
+      } else {
+        btn.style.cssText = 'background:transparent;color:#9098b1;border:1px solid #2e3248;';
+      }
+      btn.addEventListener('click', () => {
+        if (state.activeWorkModelFilter.has(model)) {
+          state.activeWorkModelFilter.delete(model);
+        } else {
+          state.activeWorkModelFilter.add(model);
+        }
+        state.currentPage = 1;
+        renderJobList();
+      });
+    }
+    row.appendChild(btn);
+  });
+}
+
 function buildCountryFilters() {
   // Base: source + WM filtered (excludes country filter)
   const base = state.allResults.filter(j => _srcPredicate(j) && _wmPredicate(j));
@@ -1917,8 +1958,8 @@ function _srcPredicate(job) {
   return state.activeSourceFilter === 'ALL' || job.source === state.activeSourceFilter;
 }
 function _wmPredicate(job) {
-  const sz = state.activeWorkModels.size;
-  return sz === 0 || sz === 3 || state.activeWorkModels.has(getWorkModel(job));
+  return state.activeWorkModelFilter.size === 0
+    || state.activeWorkModelFilter.has(getWorkModel(job));
 }
 function _countryPredicate(job) {
   return state.activeCountries.size === 0
@@ -1936,28 +1977,6 @@ function applyFilters(jobs) {
   });
 
   return list;
-}
-
-function _updateWmButtonCounts() {
-  // Base: source + country filtered (excludes WM filter)
-  const base = state.allResults.filter(j => _srcPredicate(j) && _countryPredicate(j));
-  const wmLabels = { remote: '🌐 Remote', hybrid: '🏢 Hybrid', onsite: '🏛 On-site' };
-  const counts = { remote: 0, hybrid: 0, onsite: 0 };
-  base.forEach(j => { counts[getWorkModel(j)]++; });
-  document.querySelectorAll('#workmodel-filters [data-workmodel]').forEach(btn => {
-    const m = btn.dataset.workmodel;
-    if (!m) return;
-    // Only selected-model chips exist in DOM; treat zero-count as greyed non-clickable.
-    const count = counts[m];
-    btn.textContent = `${wmLabels[m]} (${count})`;
-    if (count === 0) {
-      btn.className = 'source-filter-btn zero';
-      btn.style.cssText = '';
-    } else {
-      btn.className = 'source-filter-btn';
-      btn.style.cssText = 'background:#5b6ef5;color:#ffffff;border:1px solid #5b6ef5;';
-    }
-  });
 }
 
 function _updateSourceButtonCounts() {
@@ -2018,15 +2037,18 @@ function _renderPagination(total, currentPage, totalPages) {
 
 function _updateResultsMeta(filteredTotal, from, to) {
   const { sourcesCount, duration } = state.searchMeta;
+  const rangeText = filteredTotal === 0
+    ? `<strong>0</strong>`
+    : `<strong>${from}–${to}</strong> of <strong>${filteredTotal}</strong>`;
   document.getElementById('results-meta').innerHTML =
-    `Showing <strong>${from}–${to}</strong> of <strong>${filteredTotal}</strong> ` +
+    `Showing ${rangeText} ` +
     `job${filteredTotal !== 1 ? 's' : ''} across <strong>${sourcesCount}</strong> ` +
     `source${sourcesCount !== 1 ? 's' : ''} in <strong>${duration}s</strong>`;
 }
 
 function renderJobList() {
   _updateSourceButtonCounts();
-  _updateWmButtonCounts();
+  buildWorkModelFilters();
   buildCountryFilters();
   const filtered = applyFilters(state.allResults);
   const list = document.getElementById('job-list');
@@ -2037,6 +2059,7 @@ function renderJobList() {
   document.getElementById('pagination-top').innerHTML = '';
 
   if (filtered.length === 0) {
+    _updateResultsMeta(0, 0, 0);
     noResults.classList.remove('hidden');
     if (state.allResults.length === 0) {
       noResults.innerHTML =
@@ -2103,41 +2126,6 @@ function buildSourceFilters(results, queriedSources) {
     container.appendChild(btn);
   });
 
-  // Work model counts – Row 2 (from source-filtered set, not all results)
-  const wmLabels = { remote: '🌐 Remote', hybrid: '🏢 Hybrid', onsite: '🏛 On-site' };
-  const wmCounts = { remote: 0, hybrid: 0, onsite: 0 };
-  const _sfForWm = state.activeSourceFilter === 'ALL'
-    ? results
-    : results.filter(j => j.source === state.activeSourceFilter);
-  _sfForWm.forEach(j => { wmCounts[getWorkModel(j)]++; });
-
-  const wmRow = document.getElementById('workmodel-filters');
-  wmRow.innerHTML = '';
-
-  ['remote', 'hybrid', 'onsite'].forEach(model => {
-    if (!state.activeWorkModels.has(model)) return;
-    const count = wmCounts[model];
-    const btn = document.createElement('button');
-    btn.dataset.workmodel = model;
-    btn.textContent = `${wmLabels[model]} (${count})`;
-    if (count === 0) {
-      btn.className = 'source-filter-btn zero';
-    } else {
-      btn.className = 'source-filter-btn';
-      btn.style.cssText = 'background:#5b6ef5;color:#ffffff;border:1px solid #5b6ef5;';
-      btn.addEventListener('click', () => {
-        state.activeWorkModels.delete(model);
-        document.querySelectorAll('#workmodel-pills .workmodel-pill').forEach(p => {
-          p.classList.toggle('active', state.activeWorkModels.has(p.dataset.workmodel));
-        });
-        document.getElementById('workmodel-pills').classList.toggle('wm-none', state.activeWorkModels.size === 0);
-        saveSettings();
-        state.currentPage = 1;
-        renderJobList();
-      });
-    }
-    wmRow.appendChild(btn);
-  });
 }
 
 function setSourceFilter(sourceId) {
