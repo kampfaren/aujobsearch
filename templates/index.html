@@ -797,10 +797,16 @@
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    position: relative;
+    cursor: pointer;
   }
 
-  .site-card:hover { border-color: var(--border); }
+  .site-card:hover {
+    background: var(--surface-r);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 4px 16px rgba(91,110,245,0.12);
+  }
 
   .site-card-top {
     display: flex;
@@ -833,46 +839,19 @@
     line-height: 1.45;
   }
 
-  .site-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin-top: 0.1rem;
-  }
-
-  .meta-badge {
+  .site-country-badge {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    display: inline-flex;
+    align-items: center;
     font-size: 0.7rem;
-    padding: 0.12rem 0.45rem;
+    padding: 0.12rem 0.5rem;
     border-radius: 999px;
-    font-weight: 500;
-  }
-
-  .meta-pull-ok    { background: rgba(62,207,142,0.12); color: var(--green); }
-  .meta-pull-warn  { background: rgba(245,166,35,0.12); color: var(--amber); }
-  .meta-pull-link  { background: rgba(91,110,245,0.12); color: var(--accent); }
-  .meta-acct-req   { background: rgba(255,92,92,0.1); color: var(--red); }
-  .meta-acct-free  { background: rgba(62,207,142,0.1); color: var(--green); }
-
-  .site-visit-btn {
-    display: inline-block;
-    margin-top: 0.3rem;
     background: var(--surface-r);
-    border: 1px solid var(--border);
-    border-radius: 6px;
     color: var(--text-s);
-    font-size: 0.78rem;
-    padding: 0.28rem 0.7rem;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
-    text-decoration: none;
-    width: fit-content;
   }
 
-  .site-visit-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    text-decoration: none;
-  }
 
   /* ===== Utility ===== */
   .divider { height: 1px; background: var(--border); margin: 0.75rem 0; }
@@ -984,28 +963,9 @@
     padding: 1rem 1.25rem;
   }
 
-  .getsetup-toggle {
-    background: none;
-    color: var(--accent);
-    font-size: 0.88rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0;
-    transition: color 0.15s;
-    width: 100%;
-    text-align: left;
-  }
-  .getsetup-toggle:hover { color: var(--accent-h); }
-  .getsetup-toggle .arrow { display: inline-block; transition: transform 0.2s; font-style: normal; }
-  .getsetup-toggle.open .arrow { transform: rotate(90deg); }
-
-  .getsetup-body { display: none; margin-top: 1rem; }
-  .getsetup-body.visible { display: block; }
 
   .getsetup-header { margin-bottom: 1rem; }
-  .getsetup-header h2 { font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; }
+  .getsetup-header h2 { font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; color: #AFA9EC; }
   .getsetup-header p { font-size: 0.8rem; color: var(--text-s); }
 
   /* Job cards source badge colors */
@@ -1097,7 +1057,7 @@
           <!-- "All" pill injected by JS; country pills are fully dynamic -->
         </div>
         <div class="more-countries-wrap">
-          <button class="more-countries-btn" id="more-countries-btn">+ More countries</button>
+          <button class="more-countries-btn" id="more-countries-btn">+ Add countries</button>
           <div class="more-countries-dropdown" id="more-countries-dropdown"></div>
         </div>
       </div>
@@ -1108,10 +1068,6 @@
         <div class="source-list" id="sources-list">
           <!-- Populated by JS from /api/sources -->
         </div>
-        <p class="search-note" style="margin-top:0.65rem;">
-          Some sites require an account to apply.
-          <a id="get-setup-link" href="#" style="color:var(--accent);text-decoration:none;">→ See other job sites</a>
-        </p>
       </div>
 
       <div class="field-group">
@@ -1174,6 +1130,11 @@
           </div>
           <div class="toolbar-row-2" id="workmodel-filters"></div>
           <div class="toolbar-row-countries" id="country-filters"></div>
+          <div style="width:100%; border-top:1px solid var(--border); padding-top:8px;">
+            <p style="font-size:0.78rem; color:var(--text-s); margin:0;">
+              ⓘ <a href="https://www.linkedin.com/signup" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">LinkedIn</a> requires a free account to view full listings and apply.
+            </p>
+          </div>
         </div>
 
         <div id="warnings-box" class="warnings-box hidden"></div>
@@ -1193,17 +1154,12 @@
 
   <!-- Other job sites (full width, below grid) -->
   <section class="getsetup" id="recommended-sites" style="margin-top:1.5rem;">
-    <button class="getsetup-toggle" id="recommended-sites-toggle">
-      <i class="arrow">›</i> Other job sites (manual check)
-    </button>
-    <div class="getsetup-body" id="getsetup-body">
-      <div class="getsetup-header">
-        <h2>Other job sites (manual check)</h2>
-        <p style="color:var(--text-muted);font-size:0.8rem;">The sites below don't have a public feed or API this app can search, so they're not included in your results above. Look for jobs manually.</p>
-        <p>Job boards require a free account to apply. Company career pages (via Greenhouse) do not.</p>
-      </div>
-      <div id="site-categories"></div>
+    <div class="getsetup-header">
+      <h2>Other job sites (manual search)</h2>
+      <p style="color:var(--text-muted);font-size:0.8rem;">The sites below don't have a public feed or API this app can search, so they're not included in your results above. Look for jobs manually.</p>
+      <p>Job boards require a free account to apply. Company career pages (via Greenhouse) do not.</p>
     </div>
+    <div id="site-categories"></div>
   </section>
 
 </div><!-- end app-wrapper -->
@@ -1653,7 +1609,7 @@ async function loadSources() {
     // Wire ⓘ icons to the shared body tooltip
     const _TIP_TEXTS = {
       'INDEED_EU':      'When no countries are selected, Indeed EU returns Germany-based remote jobs only. Select specific countries for full coverage.',
-      'LINKEDIN_EU':    'LinkedIn blocks automated requests after repeated use. If results drop to 0, your IP is temporarily rate-limited. Wait a few hours before retrying.',
+      'LINKEDIN_EU':    'LinkedIn blocks automated requests after repeated use. If results drop to 0, your IP is temporarily rate-limited – wait a few hours before retrying.',
       'KARRIERE_AT':    'Austria only.',
       'ARBEITNOW':      'Germany, Austria, and Switzerland only.',
       'REMOTIVE':       'Remote roles only – results are not filtered by country.',
@@ -1813,7 +1769,7 @@ const _COUNTRY_DETECT = [
 ];
 
 function _countryMeta(key, job) {
-  if (key === 'remote') return { key: 'remote', label: 'Remote', flag: '🌐' };
+  if (key === 'remote') return { key: 'remote', label: 'Worldwide', flag: '🌐' };
   const detect = _COUNTRY_DETECT.find(c => c.key === key);
   if (detect) return { key: detect.key, label: detect.label, flag: detect.flag };
   const truncated = (job.location || '').split(',')[0].trim();
@@ -1843,7 +1799,7 @@ function detectJobCountry(job) {
   // Fallback: legacy detected_country (singular) or local computation
   const key = job.detected_country;
   if (key) {
-    if (key === 'remote') return { key: 'remote', label: 'Remote', flag: '🌐' };
+    if (key === 'remote') return { key: 'remote', label: 'Worldwide', flag: '🌐' };
     if (key === 'other') {
       const truncated = (job.location || '').split(',')[0].trim();
       return { key: `other:${truncated}`, label: truncated, flag: '📍' };
@@ -1854,14 +1810,14 @@ function detectJobCountry(job) {
   // Local computation fallback (should not fire for server results)
   const loc = (job.location || '').toLowerCase();
   if (!job.location || !job.location.trim() || loc.includes('remote')) {
-    return { key: 'remote', label: 'Remote', flag: '🌐' };
+    return { key: 'remote', label: 'Worldwide', flag: '🌐' };
   }
   for (const c of _COUNTRY_DETECT) {
     if (c.terms.some(t => loc.includes(t))) {
       return { key: c.key, label: c.label, flag: c.flag };
     }
   }
-  if (job.is_remote) return { key: 'remote', label: 'Remote', flag: '🌐' };
+  if (job.is_remote) return { key: 'remote', label: 'Worldwide', flag: '🌐' };
   const truncated = (job.location || '').split(',')[0].trim();
   return { key: `other:${truncated}`, label: truncated, flag: '📍' };
 }
@@ -1905,13 +1861,33 @@ function buildCountryFilters() {
         flag:  entry ? entry.flag  : (detect ? detect.flag  : '📍'),
         count: entry ? entry.count : 0,
       };
-    }).sort((a, b) => b.count - a.count);
+    });
+    // Remote-tagged jobs always pass the country filter server-side, regardless
+    // of which countries are selected. Show them as their own chip so the totals
+    // add up and they can be isolated or excluded like any other chip.
+    if (countMap['remote'] && !selectedKeys.includes('remote')) {
+      toRender.push({
+        key: 'remote',
+        label: countMap['remote'].label,
+        flag: countMap['remote'].flag,
+        count: countMap['remote'].count,
+      });
+    }
+    toRender.sort((a, b) => b.count - a.count);
   }
 
   toRender.forEach(({ key, label, flag, count }) => {
     const btn = document.createElement('button');
     btn.dataset.countryKey = key;
-    btn.textContent = `${flag} ${label} (${count})`;
+    if (key === 'remote') {
+      const flagSpan = document.createElement('span');
+      flagSpan.textContent = flag;
+      flagSpan.style.filter = 'hue-rotate(180deg)';
+      btn.appendChild(flagSpan);
+      btn.appendChild(document.createTextNode(` ${label} (${count})`));
+    } else {
+      btn.textContent = `${flag} ${label} (${count})`;
+    }
     if (count === 0) {
       btn.className = 'source-filter-btn zero';
     } else {
@@ -2325,71 +2301,57 @@ const SITE_DATA = [
   {
     category: 'GENERAL',
     sites: [
-      // Green: automatically pulled
-      { name: 'Indeed Europe',  desc: 'Largest job aggregator with strong EU coverage.',          pull: 'ok',   pullLabel: '✅ Results pulled', acct: 'partial', acctLabel: 'Account: for Easy Apply only', url: 'https://www.indeed.com',          color: '#003A9B' },
-      { name: 'LinkedIn',       desc: 'Professional network with EU job listings.',                pull: 'warn', pullLabel: '⚠ Unstable',       acct: 'req',     acctLabel: 'Account required',            url: 'https://www.linkedin.com/jobs',   color: '#0A66C2' },
-      { name: 'EuroJobs',       desc: 'Pan-European job board.',                                  pull: 'ok',   pullLabel: '✅ Results pulled', acct: 'partial', acctLabel: 'Account: for applying',       url: 'https://www.eurojobs.com',        color: '#2196f3' },
-      // Blue: manual, no registration
-      { name: 'Google Jobs',    desc: 'Aggregates listings across the web.',                      pull: 'link', pullLabel: '🔗 Link only',     acct: 'free',    acctLabel: 'No account needed',           url: 'https://jobs.google.com',         color: '#4285f4' },
-      { name: 'Adzuna',         desc: 'Pan-European job aggregator with salary data.',            pull: 'link', pullLabel: '🔗 Link only',     acct: 'free',    acctLabel: 'No account needed',           url: 'https://www.adzuna.co.uk',        color: '#ef5a25' },
-      { name: 'EuropeRemotely', desc: 'Remote jobs from European companies.',                     pull: 'link', pullLabel: '🔗 Link only',     acct: 'free',    acctLabel: 'No account needed',           url: 'https://europeremotely.com',      color: '#6366f1' },
-      // Red: manual, registration required
-      { name: 'Glassdoor',      desc: 'Jobs with company reviews and salaries.',                  pull: 'link', pullLabel: '🔗 Link only',     acct: 'req',     acctLabel: 'Account required',            url: 'https://www.glassdoor.com/Job',   color: '#0caa41' },
-      { name: 'Relocate.me',    desc: 'Jobs with relocation support.',                            pull: 'link', pullLabel: '🔗 Link only',     acct: 'req',     acctLabel: 'Account required',            url: 'https://relocate.me',             color: '#f97316' },
+      { name: 'my.greenhouse.io', desc: "Search jobs across all companies that use Greenhouse, beyond this app's source list.", url: 'https://my.greenhouse.io', color: '#24a148' },
+      { name: 'EuroJobs', desc: 'Pan-European job board.', url: 'https://www.eurojobs.com', color: '#2196f3' },
+      { name: 'Google Jobs', desc: 'Aggregates listings across the web.', url: 'https://jobs.google.com', color: '#4285f4' },
+      { name: 'Adzuna', desc: 'Pan-European job aggregator with salary data.', url: 'https://www.adzuna.co.uk', color: '#ef5a25' },
+      { name: 'Glassdoor', desc: 'Jobs with company reviews and salaries.', url: 'https://www.glassdoor.com/Job', color: '#0caa41' },
+      { name: 'Relocate.me', desc: 'Jobs with relocation support.', url: 'https://relocate.me', color: '#f97316' },
     ],
   },
   {
     category: 'COUNTRY-SPECIFIC',
     sites: [
-      // Green: automatically pulled
-      { name: 'Karriere.at',   desc: "Austria's leading job board.",              pull: 'ok',   pullLabel: '✅ Results pulled', acct: 'req', acctLabel: 'Account required', url: 'https://www.karriere.at',     color: '#e63946' },
-      // Blue: manual, no registration
-      { name: 'No Fluff Jobs', desc: 'Tech jobs in Poland and CEE.',              pull: 'link', pullLabel: '🔗 Link only',     acct: 'free',acctLabel: 'No account needed',url: 'https://nofluffjobs.com',     color: '#e63f6a' },
-      // Red: manual, registration required
-      { name: 'Pracuj.pl',     desc: "Poland's leading job board.",               pull: 'link', pullLabel: '🔗 Link only',     acct: 'req', acctLabel: 'Account required', url: 'https://pracuj.pl',           color: '#cc0000' },
-      { name: 'Jobs.cz',       desc: "Czech Republic's main job board.",          pull: 'link', pullLabel: '🔗 Link only',     acct: 'req', acctLabel: 'Account required', url: 'https://www.jobs.cz',         color: '#0052cc' },
-      { name: 'eJobs.ro',      desc: "Romania's top job platform.",               pull: 'link', pullLabel: '🔗 Link only',     acct: 'req', acctLabel: 'Account required', url: 'https://www.ejobs.ro',        color: '#d62828' },
-      { name: 'StepStone DE/AT',desc: 'Major board for Germany and Austria.',     pull: 'link', pullLabel: '🔗 Link only',     acct: 'req', acctLabel: 'Account required', url: 'https://www.stepstone.de',    color: '#e6002d' },
+      { name: 'StepStone AT', desc: 'Major job board for Austria.', url: 'https://www.stepstone.at', color: '#e6002d', country: '🇦🇹 Austria' },
+      { name: 'Jobsora AT', desc: 'Job search aggregator for Austria.', url: 'https://at.jobsora.com', color: '#f59e0b', country: '🇦🇹 Austria' },
+      { name: 'epunkt', desc: 'DACH recruitment agency with roles across Austria, Germany, and Switzerland.', url: 'https://job.epunkt.com/jobs', color: '#0ea5e9', country: '🇦🇹🇩🇪🇨🇭 DACH' },
+      { name: 'Jobs.cz', desc: "Czech Republic's main job board.", url: 'https://www.jobs.cz', color: '#0052cc', country: '🇨🇿 Czech Republic' },
+      { name: 'eJobs.ro', desc: "Romania's top job platform.", url: 'https://www.ejobs.ro', color: '#d62828', country: '🇷🇴 Romania' },
+      { name: 'No Fluff Jobs', desc: 'Tech jobs in Poland and CEE.', url: 'https://nofluffjobs.com', color: '#e63f6a', country: '🇵🇱 Poland' },
+      { name: 'Pracuj.pl', desc: "Poland's leading job board.", url: 'https://pracuj.pl', color: '#cc0000', country: '🇵🇱 Poland' },
     ],
   },
   {
     category: 'TECH & DEVELOPER',
     sites: [
-      // Blue: manual, no registration
-      { name: 'No Fluff Jobs',      desc: 'Tech-focused, strong CEE coverage.',         pull: 'link', pullLabel: '🔗 Link only', acct: 'free', acctLabel: 'No account needed', url: 'https://nofluffjobs.com',          color: '#e63f6a' },
-      { name: 'JustJoinIT',         desc: 'Tech jobs in Poland and remotely.',          pull: 'link', pullLabel: '🔗 Link only', acct: 'free', acctLabel: 'No account needed', url: 'https://justjoin.it',              color: '#0a0e27' },
-      { name: "HN Who's Hiring",    desc: 'Hacker News monthly thread.',               pull: 'link', pullLabel: '🔗 Link only', acct: 'free', acctLabel: 'No account needed', url: 'https://news.ycombinator.com/jobs',color: '#ff6600' },
-      // Red: manual, registration required
-      { name: 'Stack Overflow Jobs', desc: 'Developer-focused listings.',               pull: 'link', pullLabel: '🔗 Link only', acct: 'req',  acctLabel: 'Account required',  url: 'https://stackoverflow.com/jobs',   color: '#f48024' },
-      { name: 'Wellfound (AngelList)',desc: 'Startup and tech jobs.',                   pull: 'link', pullLabel: '🔗 Link only', acct: 'req',  acctLabel: 'Account required',  url: 'https://wellfound.com/jobs',       color: '#000000' },
+      { name: 'No Fluff Jobs', desc: 'Tech-focused, strong CEE coverage.', url: 'https://nofluffjobs.com', color: '#e63f6a' },
+      { name: 'JustJoinIT', desc: 'Tech jobs in Poland and remotely.', url: 'https://justjoin.it', color: '#0a0e27' },
+      { name: 'Wellfound (AngelList)', desc: 'Startup and tech jobs.', url: 'https://wellfound.com/jobs', color: '#000000' },
     ],
   },
   {
     category: 'UX & DESIGN',
     sites: [
-      // Blue: manual, no registration
-      { name: 'UX Jobs Board', desc: 'Specialist UX listings.', pull: 'link', pullLabel: '🔗 Link only', acct: 'free', acctLabel: 'No account needed', url: 'https://www.uxjobsboard.com', color: '#7c3aed' },
-      // Red: manual, registration required
-      { name: 'Dribbble Jobs', desc: 'Design and UX roles.', pull: 'link', pullLabel: '🔗 Link only', acct: 'req', acctLabel: 'Account required', url: 'https://dribbble.com/jobs', color: '#ea4c89' },
+      { name: 'UI/UX Jobs Board', desc: 'Specialist UX and product design listings.', url: 'https://uiuxjobsboard.com', color: '#7c3aed' },
+      { name: 'Dribbble Jobs', desc: 'Design and UX roles.', url: 'https://dribbble.com/jobs', color: '#ea4c89' },
     ],
   },
   {
     category: 'CONTENT & TECHNICAL WRITING',
     sites: [
-      // Blue: manual, no registration
-      { name: 'Write the Docs Job Board', desc: 'Technical writing community board.', pull: 'link', pullLabel: '🔗 Link only', acct: 'free', acctLabel: 'No account needed', url: 'https://jobs.writethedocs.org', color: '#2d6a4f' },
-      { name: 'Knowledgeowl Job Board', desc: 'Technical writing and docs roles.', pull: 'link', pullLabel: '🔗 Link only', acct: 'free', acctLabel: 'No account needed', url: 'https://jobs.knowledgeowl.com', color: '#5a4fcf' },
-      // Red: manual, registration required
-      { name: 'Working in Content', desc: 'Content strategy, UX writing, technical writing.', pull: 'link', pullLabel: '🔗 Link only', acct: 'req', acctLabel: 'Account: required to apply', url: 'https://workingincontent.com/jobs', color: '#06b6d4' },
+      { name: 'Working in Content', desc: 'Content strategy, UX writing, technical writing.', url: 'https://workingincontent.com/content-jobs', color: '#06b6d4' },
     ],
   },
   {
     category: 'REMOTE',
     sites: [
-      // Blue: manual, no registration
-      { name: 'Michael Page',      desc: 'Recruitment agency specializing in senior EU roles.',pull: 'link', pullLabel: '🔗 Link only',     acct: 'free', acctLabel: 'No account needed', url: 'https://www.michaelpage.com',            color: '#e30613' },
-      // Red: manual, registration required
-      { name: 'WeAreDevelopers',   desc: 'Developer jobs with strong European coverage.',      pull: 'link', pullLabel: '🔗 Link only',     acct: 'req',  acctLabel: 'Account required',  url: 'https://www.wearedevelopers.com/jobs',   color: '#1b2a4a' },
+      { name: 'Michael Page', desc: 'Recruitment agency specializing in senior EU roles.', url: 'https://www.michaelpage.com', color: '#e30613' },
+      { name: 'WeAreDevelopers', desc: 'Developer jobs with strong European coverage.', url: 'https://www.wearedevelopers.com/jobs', color: '#1b2a4a' },
+      { name: 'EuroRemoteJobs', desc: 'Remote jobs at companies based in Europe.', url: 'https://euremotejobs.com', color: '#10b981' },
+      { name: 'Working Nomads', desc: 'Curated remote jobs across categories, including roles open to Europe.', url: 'https://www.workingnomads.com/jobs', color: '#f43f5e' },
+      { name: 'Jobspresso', desc: 'Hand-screened remote jobs, including writing and content roles.', url: 'https://jobspresso.co/remote-work', color: '#8b5cf6' },
+      { name: 'Remote Rocketship', desc: 'Remote tech and product roles, searchable by region.', url: 'https://www.remoterocketship.com', color: '#14b8a6' },
+      { name: 'Jobgether', desc: 'AI-matched remote and hybrid roles across Europe.', url: 'https://jobgether.com', color: '#6366f1' },
     ],
   },
 ];
@@ -2415,24 +2377,9 @@ function buildGetSetup() {
       card.className = 'site-card';
 
       const initial = site.name.charAt(0);
-      const isPulled  = site.pull === 'ok' || site.pull === 'warn';
-      const needsAcct = site.acct === 'req' || site.acct === 'partial';
-      const isLinkedInCard = site.name === 'LinkedIn';
 
-      let badgeClass, badgeText;
-      if (isPulled && needsAcct) {
-        badgeClass = 'meta-pull-ok';
-        badgeText  = 'Automatically pulled, requires registration';
-      } else if (!isPulled && needsAcct) {
-        badgeClass = 'meta-acct-req';
-        badgeText  = 'Manual search, requires registration';
-      } else {
-        badgeClass = 'meta-pull-link';
-        badgeText  = 'Manual search, no registration required';
-      }
-
-      const linkedInIconHtml = isLinkedInCard
-        ? ' <span class="src-info-trigger" data-linkedin-card-tip>ⓘ</span>'
+      const countryBadge = site.country
+        ? `<span class="site-country-badge">${esc(site.country)}</span>`
         : '';
 
       card.innerHTML = `
@@ -2441,18 +2388,12 @@ function buildGetSetup() {
           <span class="site-name">${esc(site.name)}</span>
         </div>
         <p class="site-desc">${esc(site.desc)}</p>
-        <div class="site-meta">
-          <span class="meta-badge ${badgeClass}">${esc(badgeText)}${linkedInIconHtml}</span>
-        </div>
-        <a class="site-visit-btn" href="${esc(site.url)}" target="_blank" rel="noopener noreferrer">${site.acct === 'free' ? 'Visit →' : 'Visit &amp; Register →'}</a>
+        ${countryBadge}
       `;
 
-      if (isLinkedInCard) {
-        const icon = card.querySelector('[data-linkedin-card-tip]');
-        const tip  = 'LinkedIn blocks automated requests after repeated use. If results drop to 0, your IP is temporarily rate-limited. Wait a few hours before retrying.';
-        icon.addEventListener('mouseenter', () => _showSrcTooltip(icon, tip));
-        icon.addEventListener('mouseleave', _hideSrcTooltip);
-      }
+      card.addEventListener('click', () => {
+        window.open(site.url, '_blank', 'noopener');
+      });
 
       grid.appendChild(card);
     });
@@ -2462,23 +2403,6 @@ function buildGetSetup() {
   });
 }
 
-// Other job sites toggle
-document.getElementById('recommended-sites-toggle').addEventListener('click', () => {
-  const toggle = document.getElementById('recommended-sites-toggle');
-  const body = document.getElementById('getsetup-body');
-  const isOpen = body.classList.contains('visible');
-  body.classList.toggle('visible', !isOpen);
-  toggle.classList.toggle('open', !isOpen);
-});
-
-// "→ See other job sites" link – expand section and scroll into view
-document.getElementById('get-setup-link').addEventListener('click', e => {
-  e.preventDefault();
-  document.getElementById('recommended-sites-toggle').click();
-  setTimeout(() => {
-    document.getElementById('recommended-sites').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 50);
-});
 
 // ============================================================
 // LinkedIn rate-limit toast
