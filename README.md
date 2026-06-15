@@ -6,6 +6,8 @@ A Flask-based job search aggregator for the European job market. It searches eig
 
 Try the [interactive demo](https://teokitten.github.io/eurojobsearch/) with sample data – no install required.
 
+![EuroJobSearch screenshot](docs/screenshot.png)
+
 ## Setup
 
 Requires Python 3.10 or later.
