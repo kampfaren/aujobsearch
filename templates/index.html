@@ -525,6 +525,7 @@
   }
 
 
+
   /* Warnings */
   .warnings-box {
     background: rgba(144,152,177,0.06);
@@ -727,23 +728,6 @@
     color: var(--text-s);
   }
 
-  .card-tooltip {
-    position: absolute;
-    top: 0.6rem;
-    right: 0.6rem;
-    font-size: 0.7rem;
-    color: var(--text-s);
-    opacity: 0;
-    transition: opacity 0.15s;
-    pointer-events: none;
-    background: var(--surface-r);
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    white-space: nowrap;
-  }
-
-  .job-card:hover .card-tooltip { opacity: 1; }
 
   /* Skeleton */
   .skeleton-list {
@@ -1063,7 +1047,8 @@
           id="keywords"
           class="text-input"
           type="text"
-          placeholder="e.g. technical writer, UX designer, backend developer"
+          placeholder="e.g. technical writer, freelance"
+          title="Comma-separated AND filter: e.g. technical writer, freelance – returns jobs matching all terms"
           autocomplete="off"
         >
         <div class="toggle-row" style="margin-top:0.5rem;">
@@ -1226,6 +1211,7 @@ const state = {
   currentPage: 1,
   searchMeta: { sourcesCount: 0, duration: 0 },
 };
+
 
 // ============================================================
 // Settings persistence
@@ -2009,7 +1995,6 @@ function _countryPredicate(job) {
   return state.activeCountries.size === 0
     || _jobCountryKeys(job).some(k => state.activeCountries.has(k));
 }
-
 function applyFilters(jobs) {
   let list = jobs.filter(j => _srcPredicate(j) && _wmPredicate(j) && _countryPredicate(j));
 
@@ -2204,7 +2189,6 @@ function buildJobCard(job) {
   const remoteBadge = job.is_remote ? '<span class="remote-badge">Remote</span>' : '';
 
   card.innerHTML = `
-    <span class="card-tooltip">Click to view job</span>
     <div class="job-card-top">
       <div class="job-title-group">
         <span class="job-title">${esc(job.title)}</span>

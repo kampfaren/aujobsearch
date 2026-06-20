@@ -360,8 +360,32 @@ def _is_recent(val, hours_old: int) -> bool:
 
 
 def _keyword_in(keyword: str, *fields) -> bool:
-    kw = keyword.lower()
-    return any(kw in (f or "").lower() for f in fields)
+    combined = " ".join((f or "").lower() for f in fields)
+    return all(token in combined for token in keyword.lower().split())
+
+
+def _primary_keyword(keywords: str) -> str:
+    """First comma-separated part – used as search_term for source APIs."""
+    return keywords.split(',')[0].strip()
+
+_KEYWORD_SYNONYMS: dict[str, list[str]] = {
+    "freelance": ["freelance", "contractor", "contract", "b2b", "mission", "cdd", "werkvertrag", "freiberuflich", "freiberufler"],
+    "contract":  ["contract", "contractor", "freelance", "b2b", "cdd", "werkvertrag"],
+    "remote":    ["remote", "homeoffice", "home office", "distributed"],
+    "hybrid":    ["hybrid", "homeoffice", "home office", "mobiles arbeiten"],
+    "part-time": ["part-time", "part time", "teilzeit", "parttime"],
+    "part time": ["part-time", "part time", "teilzeit", "parttime"],
+}
+
+def _keywords_match(keywords: str, *fields) -> bool:
+    """All comma-separated parts must match; each part expands to synonyms if available."""
+    parts = [p.strip() for p in keywords.split(',') if p.strip()]
+    for part in parts:
+        synonyms = _KEYWORD_SYNONYMS.get(part.lower(), [part.lower()])
+        combined = " ".join((f or "").lower() for f in fields)
+        if not any(syn in combined for syn in synonyms):
+            return False
+    return True
 
 
 def _strip_html(text: str) -> str:
@@ -523,7 +547,7 @@ def _fetch_indeed(keywords: str, countries: list[str], hours_old: int,
     def _scrape(country_name: str, is_remote: bool | None, country_key: str | None):
         scrape_params: dict = {
             "site_name": ["indeed"],
-            "search_term": keywords,
+            "search_term": _primary_keyword(keywords),
             "country_indeed": country_name,
             "hours_old": int(hours_old),
             "results_wanted": int(results_per_source),
@@ -560,7 +584,7 @@ def _fetch_indeed(keywords: str, countries: list[str], hours_old: int,
             for _, row in df.iterrows():
                 title = str(row.get("title", "") or "")
                 company = str(row.get("company", "") or "")
-                if title_only and not _keyword_in(keywords, title):
+                if title_only and not _keywords_match(keywords, title):
                     continue
                 location  = str(row.get("location", "") or "")
                 full_desc = str(row.get("description", "") or "")
@@ -653,7 +677,7 @@ def _fetch_linkedin(keywords: str, countries: list[str], hours_old: int,
     def _scrape_li(location: str, is_remote: bool, country_key: str | None):
         scrape_params: dict = {
             "site_name": ["linkedin"],
-            "search_term": keywords,
+            "search_term": _primary_keyword(keywords),
             "location": location,
             "hours_old": hours_old,
             "results_wanted": results_per_source,
@@ -673,7 +697,7 @@ def _fetch_linkedin(keywords: str, countries: list[str], hours_old: int,
             for _, row in df.iterrows():
                 title = str(row.get("title", "") or "")
                 company = str(row.get("company", "") or "")
-                if title_only and not _keyword_in(keywords, title):
+                if title_only and not _keywords_match(keywords, title):
                     continue
                 location  = str(row.get("location", "") or "")
                 full_desc = str(row.get("description", "") or "")
@@ -773,7 +797,7 @@ def _fetch_greenhouse(keywords: str, countries: list[str], title_only: bool, slu
                 location = job.get("location", {}).get("name", "") or ""
                 content  = job.get("content", "") or ""
                 content_text = _strip_html(content)
-                if not _keyword_in(keywords, title) and (title_only or not _keyword_in(keywords, content_text)):
+                if not _keywords_match(keywords, title) and (title_only or not _keywords_match(keywords, content_text)):
                     continue
                 updated = job.get("updated_at") or job.get("created_at")
                 if not _is_recent(updated, hours_old):
@@ -861,7 +885,7 @@ def _fetch_glassdoor(keywords: str, countries: list[str], hours_old: int,
     def _scrape(location: str, is_remote: bool):
         scrape_params: dict = {
             "site_name": ["glassdoor"],
-            "search_term": keywords,
+            "search_term": _primary_keyword(keywords),
             "location": location,
             "hours_old": int(hours_old),
             "results_wanted": int(results_per_source),
@@ -879,7 +903,7 @@ def _fetch_glassdoor(keywords: str, countries: list[str], hours_old: int,
             for _, row in df.iterrows():
                 title = str(row.get("title", "") or "")
                 company = str(row.get("company", "") or "")
-                if title_only and not _keyword_in(keywords, title):
+                if title_only and not _keywords_match(keywords, title):
                     continue
                 results.append({
                     "id": _job_id(title, company),
@@ -945,7 +969,7 @@ def _fetch_google_jobs(keywords: str, countries: list[str], hours_old: int,
     def _scrape(location: str, is_remote: bool):
         scrape_params: dict = {
             "site_name": ["google"],
-            "search_term": keywords,
+            "search_term": _primary_keyword(keywords),
             "location": location,
             "hours_old": int(hours_old),
             "results_wanted": int(results_per_source),
@@ -963,7 +987,7 @@ def _fetch_google_jobs(keywords: str, countries: list[str], hours_old: int,
             for _, row in df.iterrows():
                 title = str(row.get("title", "") or "")
                 company = str(row.get("company", "") or "")
-                if title_only and not _keyword_in(keywords, title):
+                if title_only and not _keywords_match(keywords, title):
                     continue
                 results.append({
                     "id": _job_id(title, company),
@@ -1221,7 +1245,7 @@ def _fetch_working_in_content(keywords: str) -> tuple[list, list[str]]:
             jobs = []
             for item in items:
                 title = item.findtext("title", "").strip()
-                if not _keyword_in(keywords, title):
+                if not _keywords_match(keywords, title):
                     continue
                 jobs.append(_make_job(
                     title,
@@ -1244,7 +1268,7 @@ def _fetch_working_in_content(keywords: str) -> tuple[list, list[str]]:
                 jobs = []
                 for a in soup.find_all("a", href=True):
                     title = a.get_text(strip=True)
-                    if not title or not _keyword_in(keywords, title):
+                    if not title or not _keywords_match(keywords, title):
                         continue
                     href = a["href"]
                     if href.startswith("/"):
@@ -1323,14 +1347,13 @@ def _fetch_arbeitnow(keywords: str, hours_old: int) -> tuple[list, list[str]]:
         resp.raise_for_status()
         raw = resp.json().get("data", [])
         print(f"[DEBUG][ARBEITNOW] raw: {len(raw)}")
-        kw_lower = keywords.lower()
         results = []
         for item in raw:
             created_at = item.get("created_at")
             if not _is_recent(created_at, hours_old):
                 continue
             title = item.get("title", "") or ""
-            if not _keyword_in(kw_lower, title):
+            if not _keywords_match(keywords, title):
                 continue
             company   = item.get("company_name", "") or ""
             location  = item.get("location", "") or ""
@@ -1423,13 +1446,9 @@ def _fetch_jobicy(keywords: str, hours_old: int = 0) -> tuple[list, list[str]]:
                 "is_hybrid":   _detect_hybrid_text(title, location, full_desc),
                 "description": full_desc[:2000],
             })
-        kw_lower = keywords.lower()
-        if kw_lower:
-            results = [
-                j for j in candidates
-                if kw_lower in j["title"].lower()
-                or kw_lower in (j.get("description") or "").lower()
-            ]
+        if keywords:
+            results = [j for j in candidates if
+                       _keywords_match(keywords, j["title"], j.get("description") or "")]
         else:
             results = candidates
         print(f"[DEBUG][JOBICY] after keyword filter: {len(results)}")
@@ -1507,9 +1526,8 @@ def _fetch_weworkremotely(keywords: str, hours_old: int) -> tuple[list, list[str
             errors += 1
 
     print(f"[DEBUG][WWR] total after dedup: {len(all_parsed)}")
-    kw_lower = keywords.lower()
-    if kw_lower:
-        results = [j for j in all_parsed if kw_lower in j["title"].lower()]
+    if keywords:
+        results = [j for j in all_parsed if _keywords_match(keywords, j["title"])]
     else:
         results = all_parsed
     print(f"[DEBUG][WWR] after keyword filter: {len(results)}")
@@ -1763,12 +1781,11 @@ def api_search():
     # title_only=False: title OR description match required (new behaviour).
     # Empty keywords: no filter (caught earlier by the required-field check).
     if keywords:
-        kw_lower = keywords.lower()
         before = len(deduped)
         deduped = [
             j for j in deduped
-            if kw_lower in (j.get('title') or '').lower()
-            or (not title_only and kw_lower in _strip_html(j.get('description') or '').lower())
+            if _keywords_match(keywords, (j.get('title') or ''))
+            or (not title_only and _keywords_match(keywords, _strip_html(j.get('description') or '')))
         ]
         print(f"[EuroJobSearch] keyword filter ({'title' if title_only else 'title|desc'}): {before} → {len(deduped)}")
 
