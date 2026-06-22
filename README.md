@@ -1,6 +1,6 @@
 # EuroJobSearch
 
-European jobs only. Search across job boards and company career pages – all in one place.
+AU jobs only. Search across job boards and company career pages – all in one place.
 
 A Flask-based job search aggregator for the European job market. It searches eight sources in parallel – Indeed EU, LinkedIn, Greenhouse, Karriere.at, Arbeitnow, Remotive, Jobicy, and We Work Remotely – deduplicates results, and presents them in one filterable view: country, work model, source, and keyword, all combinable. A built-in Job Application Tracker lets you save and manage applications directly in the app.
 
