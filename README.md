@@ -1,4 +1,4 @@
-# EuroJobSearch
+# AUJobSearch
 
 AU jobs only. Search across job boards and company career pages – all in one place.
 
